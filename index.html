@@ -1,0 +1,143 @@
+<!-- 
+
+    Adapted from Mike Bostock at bl.ocks.org
+    https://bl.ocks.org/mbostock/4339184
+
+ -->
+
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <title>Tree diagrams</title>
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <nav class="navbar navbar-default"></nav>
+    <svg width="1000" height="1000"></svg>
+
+    <!-- <div class="svg-wrapper">
+        <svg id="svg1" width="480" height="2000"></svg>
+    </div>
+    <div class="svg-wrapper">
+        <svg id="svg2" width="480" height="2000"></svg>
+    </div> -->
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+
+    <script>
+
+        var svg = d3.select("svg"),
+            width = window.innerWidth,
+            height = window.innerHeight;
+
+        svg.attr("width", width)
+            .attr("height", height);
+
+        var g = svg.append("g").attr("transform", "translate(40,0)");
+
+        // ... rest of your code ...
+
+        // var svg2 = d3.select("svg2"),
+        // width2 = +svg2.attr("width"),
+        // height2 = +svg2.attr("height"),
+        // g2 = svg2.append("g").attr("transform", "translate(40,0)");
+
+        var zoom = d3.zoom()
+            .scaleExtent([0.1, 10]) // This defines the minimum and maximum zoom scale.
+            .on("zoom", function () {
+                g.attr("transform", d3.event.transform);
+            });
+
+        svg.call(zoom);
+        var tree = d3.tree()
+            .size([height, width - 160]);
+
+        var stratify = d3.stratify()
+            .id(function (d) { return d.id; })
+            .parentId(function (d) { return d.parentid; });
+
+        d3.csv("data/otg.csv", function (error, data) {
+            if (error) throw error;
+            console.log(data);
+            var root = stratify(data)
+                .sort(function (a, b) { return (a.height - b.height) || a.id.localeCompare(b.id); });
+            console.log("root");
+            console.log(root);
+            // Add the links (given by calling tree(root), which also adds positional x/y coordinates) for the nodes
+            var link = g.selectAll(".link")
+                .data(tree(root).links())
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d3.linkHorizontal()
+                .x(function (d) { return d.y; })
+                .y(function (d) { return d.x; })
+                );
+
+            var msg = "hello";
+            g.selectAll(".linkText")
+                .data(tree(root).links())
+                .enter().append("text")
+                .attr("class", "linkText")
+                .attr("dy", ".35em")
+                .attr("text-anchor", "middle")
+                .attr("x", function(d) { return (d.source.y + d.target.y) / 2; }) // midpoint of link in y
+                .attr("y", function(d) { return (d.source.x + d.target.x) / 2-10; }) // midpoint of link in x
+                .text(function (d) { return msg; });
+
+
+            // Add groups for each node in the hierarchy with circles and text labels
+            var node = g.selectAll(".node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", function (d) { return "node" + (d.children ? " node--internal" : " node--leaf"); })
+                .attr("transform", function (d) { return "translate(" + d.y + "," + d.x + ")"; })
+
+
+            node.append("rect")
+                .attr("width", 80) // width of the square
+                .attr("height", 80) // height of the square
+                .attr("x", -40) // x position of the square (centered on the node)
+                .attr("y", -40) // y position of the square (centered on the node)
+                .style("fill", function (d) { return d.children ? "#3182bd" : "#c6dbef"; })
+                .on("click", function(d) {
+                    console.log(d.data.id); // or d.data.label if you have a label property
+                });
+            //  node.append("text")
+            //      .attr("dy", 3)
+            //      .attr("x", function(d) { return d.children ? -8 : 8; })
+            //      .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
+            //     //  return label with added new line
+            //         .text(function(d) { console.log(d); return d.data.label + "\n" + msg; });
+
+            node.append("text")
+                .attr("dy", ".35em") // vertically center text
+                .attr("x", 0) // position text in the center of the node
+                .style("text-anchor", "middle") // center the text
+                .each(function (d) {
+                    var arr = (d.data.label + " " + msg).split(" ");
+                    for (i = 0; i < arr.length; i++) {
+                        d3.select(this).append("tspan")
+                            .text(arr[i])
+                            .attr("dy", i ? "1.2em" : 0)
+                            .attr("x", 0) // position tspan in the center of the node
+                            .attr("text-anchor", "middle") // center the tspan
+                            .attr("class", "tspan" + i);
+                    }
+                })
+                .on("click", function(d) {
+                    console.log(d.data.id); // or d.data.label if you have a label property
+                });
+            
+            // width of the square
+                
+        });
+
+    </script>
+
+</body>
